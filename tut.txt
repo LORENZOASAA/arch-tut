@@ -1,0 +1,95 @@
+Configurare le reti se non collegate
+dhcpcd
+configurazione delle reti wireless
+iwctl device list
+iwctl station interfaccia scan
+iwctl station interfaccia get-networks
+iwctl station interfaccia connect SSID
+Partizionamento dei dischi
+fdisk -l
+cfdisk /percorso/disco (/dev/sda)
+Scegliamo GPT se siamo su un sistema UEFI oppure su un sistema Legacy, dove il disco su cui andremo ad installare Arch è più grande di 2 TB. Attenzione, quest’ultima condizione è necessaria solo su sistemi legacy, su sistemi UEFI dovete selezionare GPT a prescindere; Scegliamo MBR se siamo su un sistema legacy e con un disco minore o uguale a 2 TB.
+creazione partizione UEFI
+Spostiamoci con i tasti freccia orizzontali e selezionando New; Selezioniamo come dimensione 512M, che significa appunto 512 MB; Una volta creata la partizione, assicurandoci che sia selezionata con i tasti freccia verticali, andiamo su Type e selezioniamo EFI System.
+Creazione partizione swap
+Per creare la swap, il procedimento è analogo, tranne che per: Dimensione 4 GB Avrà come tipo: Linux swap
+Creazione partizione root
+La partizione root avrà come tipo Linux filesystem e prenderà tutto lo spazio libero disponibile. Lo schema di partizionamento appena creato è sufficiente per poter installare Arch. Naturalmente può essere ancora personalizzato, magari creando una partizione apposita per /boot o per /home. Ad ogni modo, per ora può andare, spostiamoci su Write e digitiamo yes. Infine, spostiamoci su Quit.
+formattazione partizione UEFI
+mkfs.vfat -F32 /percorso/partizione (/dev/sda1)
+Formattazione partizione root
+mkfs.ext4 /percorso/partizione (/dev/sda3)
+Formattazione partizione swap
+mkswap /percorso/partizione (/dev/sda2)
+Montaggio partizioni
+Partizione root
+mount /percorso/partizione /mnt (/dev/sda3)
+Partizione EFI
+mkdir -p /mnt/boot/efi
+mount /percorso/partizione /mnt/boot/efi (/dev/sda /mnt/boot/efi)
+Partizione swap
+swapon /percorso/partizione (/dev/sda2)
+Selezione dei mirror per i repository
+reflector --verbose --country Italy --sort rate --save /etc/pacman.d/mirrorlist
+cat /etc/pacman.d/mirrorlist
+Installazione del sistema base
+pacstrap /mnt base base-devel linux linux-firmware nano
+Generazione dell’fstab
+genfstab -U -p /mnt > /mnt/etc/fstab
+Configurazione del sistema base
+Entrare nel sistema base
+arch-chroot /mnt /bin/bash
+Configurazione della lingua
+nano /etc/locale.gen
+Scorriamo la lista e andiamo a decommentare la nostra lingua preferita, in questo caso it_IT.UTF-8. Premiamo CTRL + O per salvare, poi INVIO e infine CTRL + X.
+locale-gen
+echo LANG=it_IT.UTF-8 > /etc/locale.conf
+export LANG=it_IT.UTF-8
+Configurazione della tastiera e dell’editor predefinito
+nano /etc/vconsole.conf
+KEYMAP=it
+EDITOR=nano
+Premiamo CTRL + O per salvare, poi INVIO e infine CTRL + X.
+export EDITOR=nano
+Configurazione del fuso orario
+ln -s /usr/share/zoneinfo/Europe/Rome /etc/localtime
+hwclock --systohc –utc
+Configurazione della rete
+echo NomeMacchina > /etc/hostname
+pacman -S net-tools dhcpcd netctl
+systemctl enable dhcpcd
+Reti wireless
+pacman -S iwd wpa_supplicant wireless_tools dialog 
+iw systemctl enable iwd
+Configurazione della password di root
+passwd
+Creazione di un utente 
+useradd -m -G wheel -s /bin/bash nomeutente 
+passwd nomeutente 
+visudo
+Installazione del bootloader
+pacman -S grub pacman -S efibootmgr
+pacman -S os-prober 
+grub-install
+grub-install <percorsoDisco> 
+grub-mkconfig -o /boot/grub/grub.cfg
+Riavvio
+exit
+reboot
+Ri-configurazione della rete
+Abilitazione server audio
+pacman -S alsa-utils
+Installazione server grafico
+pacman -S xorg-server xorg-xinit
+Installazione del desktop environment Per ciacun desktop environment ho indicato quali comandi digitare per installarlo e abilitarlo. 
+GNOME pacman -S gnome gnome-extra gnome-initial-setup 
+KDE Plasma pacman -S plasma kde-applications xdg-user-dirs sddm LXQt pacman -S lxqt breeze-icons sddm xdg-user-dirs
+MATE pacman -S mate mate-extra xdg-user-dirs lightdm lightdm-gtk-greeter systemctl enable gdm
+ # Per GNOME systemctl enable sddm
+ # Per KDE e LXQt systemctl enable lightdm 
+ # Per MATE enable lightdm 
+Installazione di NetworkManager
+pacman -S networkmanager 
+systemctl enable NetworkManager 
+systemctl disable dhcpcd
+
